@@ -1,0 +1,23 @@
+:root{--bg:#f3f6f4;--card:#ffffff;--line:#dce5df;--text:#11201a;--muted:#5a6b62;--g:#135E38;--o:#FF980E;--ot:#a35a00;--soft:#eaf1ed;--osoft:#fff1dc;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1410;--card:#111d17;--line:#203128;--text:#e7efe9;--muted:#8fa399;--ot:#FF980E;--soft:#17271f;--osoft:#2a2012}}
+:root[data-theme="dark"]{--bg:#0b1410;--card:#111d17;--line:#203128;--text:#e7efe9;--muted:#8fa399;--ot:#FF980E;--soft:#17271f;--osoft:#2a2012}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px}
+.num{width:26px;height:26px;border-radius:50%;background:var(--g);color:#fff;font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.inp{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:15px;color:var(--text);width:100%;min-width:0}
+.inp:focus{border-color:var(--o)}
+.inp:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--o);outline-offset:2px}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+.btn{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:8px;padding:7px 12px;font-size:13px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{padding:9px;font-weight:600;font-size:14px;background:var(--bg);color:var(--muted)}
+.seg button.on[data-side=buy]{background:var(--g);color:#fff}
+.seg button.on[data-side=sell]{background:var(--o);color:#1b1000}
+.row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.row span:first-child{color:var(--muted)}
+.row span:last-child{font-weight:600;text-align:right}
+.key{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px;border-radius:8px;margin-top:8px;background:var(--osoft);border-left:4px solid var(--o)}
+.key span:first-child{font-size:14px;font-weight:500}
+.key span:last-child{font-size:20px;font-weight:700;color:var(--ot);text-align:right}
