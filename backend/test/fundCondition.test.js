@@ -25,3 +25,11 @@ test('Buy: harga batas <= 0 dianggap tidak tercapai', () => {
   const r = new FundCondition({ ...base, side: 'buy', balance: '9999999', entryPrice: '4000', currentPrice: '4000' }).calculate(rules);
   assert.strictEqual(r.callMarginPrice, null);
 });
+
+test('Grafik: 40 titik dan garis batas sesuai persen x MR', () => {
+  const m = new FundCondition({ ...base, side: 'buy', balance: '49545.05', entryPrice: '4137.45', currentPrice: '4134.91' });
+  const c = m.chart(rules);
+  assert.strictEqual(c.points.length, 40);
+  assert.strictEqual(c.callMarginEquity, '700.00');
+  assert.strictEqual(c.autoLiquidationEquity, '300.00');
+});

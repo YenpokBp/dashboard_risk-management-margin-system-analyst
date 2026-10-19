@@ -5,50 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>EWF Risk - Kalkulator Kondisi Dana</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script>
-tailwind.config={theme:{extend:{colors:{bg:'var(--bg)',card:'var(--card)',line:'var(--line)',tx:'var(--text)',mu:'var(--muted)',g:'var(--g)',o:'var(--o)',ot:'var(--ot)',soft:'var(--soft)'}}}}
-</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="sticky z-20 px-4 lg:px-8 py-3 flex items-center gap-3" style="background:var(--g);top:env(safe-area-inset-top,0px)">
-  <div class="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-lg flex-shrink-0" style="background:var(--o);color:#1b1000">E</div>
-  <div class="mr-auto min-w-0"><div class="text-white font-semibold leading-tight truncate">EWF Risk</div><div class="text-xs truncate" style="color:#b9d4c4">Kalkulator kondisi dana</div></div>
-  <button id="theme" class="btn">Tema</button>
+<header class="hdr">
+  <svg id="candles" class="candles" viewBox="0 0 280 64" preserveAspectRatio="xMaxYMid slice" aria-hidden="true"></svg>
+  <div class="max-w-7xl mx-auto px-4 lg:px-8 py-3 flex items-center gap-3">
+    <div class="mark">E</div>
+    <div class="mr-auto min-w-0">
+      <h1 class="font-semibold text-base leading-tight truncate">EWF Risk</h1>
+      <div class="text-xs truncate" style="color:#b9d4c4">Kalkulator kondisi dana</div>
+    </div>
+    <span class="pillx hidden sm:inline-flex"><i></i><span id="hdrInst">Gold XULF</span></span>
+    <button id="theme" class="tbtn" aria-label="Ganti tema"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+  </div>
 </header>
 
-<main class="max-w-6xl mx-auto p-4 lg:p-8 grid lg:grid-cols-12 gap-4 items-start">
-  <section class="card p-4 lg:col-span-5 lg:sticky lg:top-20">
-    <div class="flex items-center gap-3 mb-4"><span class="num">1</span><h2 class="font-semibold">Input harga</h2></div>
-    <div class="grid grid-cols-2 gap-3">
-      <div class="col-span-2"><label for="inst">Instrumen</label>
-        <select id="inst" class="inp"><option value="gold">Gold XULF</option><option value="nikkei">Nikkei</option><option value="hangseng">Hang Seng</option></select></div>
-      <div class="col-span-2"><label>Posisi</label>
+<main class="max-w-7xl mx-auto px-4 lg:px-8 py-5 grid lg:grid-cols-12 gap-4 lg:gap-5 items-start">
+  <section class="panel lg:col-span-4 lg:sticky lg:top-20">
+    <div class="ph"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>Input harga</div>
+    <div class="p-4 grid grid-cols-2 gap-3">
+      <div class="col-span-2 fld"><label>Instrumen</label>
+        <div class="chips" id="chips">
+          <button type="button" class="chip" data-inst="gold" aria-pressed="true">Gold XULF</button>
+          <button type="button" class="chip" data-inst="nikkei" aria-pressed="false">Nikkei</button>
+          <button type="button" class="chip" data-inst="hangseng" aria-pressed="false">Hang Seng</button>
+        </div></div>
+      <div class="col-span-2 fld"><label>Posisi</label>
         <div class="seg" role="group" aria-label="Posisi"><button type="button" data-side="buy" class="on" aria-pressed="true">Buy</button><button type="button" data-side="sell" aria-pressed="false">Sell</button></div></div>
-      <div><label for="eq">Modal / dana awal (USD)</label><input id="eq" class="inp" inputmode="decimal" value="49545.05"></div>
-      <div><label for="lot">Lot</label><input id="lot" class="inp" inputmode="decimal" value="1"></div>
-      <div><label for="entry">Price entry</label><input id="entry" class="inp" inputmode="decimal" value="4137.45"></div>
-      <div><label for="cur">Current price</label><input id="cur" class="inp" inputmode="decimal" value="4134.91"></div>
+      <div class="col-span-2 fld"><label for="eq">Modal / dana awal</label><div class="ipt"><span>$</span><input id="eq" inputmode="decimal" value="49545.05"></div></div>
+      <div class="fld"><label for="lot">Lot</label><div class="ipt"><input id="lot" inputmode="decimal" value="1"></div></div>
+      <div class="fld"><label for="entry">Price entry</label><div class="ipt"><input id="entry" inputmode="decimal" value="4137.45"></div></div>
+      <div class="col-span-2 fld"><label for="cur">Current price</label><div class="ipt"><input id="cur" inputmode="decimal" value="4134.91"></div></div>
+      <details class="col-span-2">
+        <summary class="text-sm cursor-pointer muted">Parameter kontrak</summary>
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <div class="fld"><label for="pv">Nilai per poin per lot</label><div class="ipt"><span>$</span><input id="pv" inputmode="decimal"></div></div>
+          <div class="fld"><label for="jm">Jaminan per lot</label><div class="ipt"><span>$</span><input id="jm" inputmode="decimal"></div></div>
+        </div>
+      </details>
     </div>
-    <details class="mt-3">
-      <summary class="text-sm cursor-pointer text-mu">Parameter kontrak</summary>
-      <div class="grid grid-cols-2 gap-3 mt-3">
-        <div><label for="pv">Nilai per poin per lot (USD)</label><input id="pv" class="inp" inputmode="decimal"></div>
-        <div><label for="jm">Jaminan per lot (USD)</label><input id="jm" class="inp" inputmode="decimal"></div>
-      </div>
-    </details>
   </section>
 
-  <section class="card p-4 lg:col-span-7">
-    <div class="flex items-center gap-3 mb-2"><span class="num">2</span><h2 class="font-semibold">Kondisi dana</h2></div>
-    <div id="res"></div>
-  </section>
-
-
+  <div class="lg:col-span-8 grid gap-4 min-w-0">
+    <div id="alert" class="alert hidden" role="alert"></div>
+    <div id="out" class="grid gap-4 min-w-0">
+      <div id="hero" class="grid md:grid-cols-3 gap-4"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
+      <div id="tiles" class="grid grid-cols-2 sm:grid-cols-6 gap-3"><div class="sk col-span-2 sm:col-span-6" style="min-height:90px"></div></div>
+      <section class="panel"><div class="ph"><span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg></span>Equity terhadap harga<span class="sub">Gold, 1 lot</span></div><div id="chart" class="p-2 sm:p-4"><div class="sk"></div></div></section>
+      <section class="panel"><div class="ph"><span class="ico o"><svg viewBox="0 0 24 24"><path d="M12 3l10 18H2L12 3zM12 10v4M12 17h.01"/></svg></span>Level harga penting<span class="sub">Jarak dari current price</span></div><div id="ladder"><div class="sk" style="margin:16px"></div></div></section>
+    </div>
+  </div>
 </main>
-
 <script src="js/app.js"></script>
 </body>
 </html>
