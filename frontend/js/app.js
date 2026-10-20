@@ -1,10 +1,12 @@
 // Frontend hanya mengirim input ke backend dan menampilkan hasilnya.
 const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
-let side = 'buy', inst = 'gold', instruments = {}, timer, reqId = 0;
+let mode = 'daytrade', side = 'buy', inst = 'gold', instruments = {}, timer, reqId = 0, first = true;
 
-const F = { eq: 'Modal', lot: 'Lot', entry: 'Price entry', cur: 'Current price', pv: 'Nilai per poin per lot', jm: 'Jaminan per lot' };
+const F = { eq: 'Modal', lot: 'Lot', entry: 'Price entry', cur: 'Current price' };
 const norm = v => { v = String(v).trim().replace(/\s/g, ''); if (!v) return ''; if (v.includes(',')) v = v.replace(/\./g, '').replace(',', '.'); return /^\d+(\.\d+)?$/.test(v) ? v : 'x'; };
 const nf = (s, d = 2) => Number(s).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d });
+let PD = 2;
+const pf = s => nf(s, PD);
 const usd = s => (Number(s) < 0 ? '-' : '') + '$' + nf(Math.abs(Number(s)));
 const short = n => Math.abs(n) >= 1000 ? nf(n / 1000, 1) + ' rb' : nf(n, 0);
 const ic = d => `<span class="ico"><svg viewBox="0 0 24 24"><path d="${d}"/></svg></span>`;
@@ -36,22 +38,22 @@ function gauge(er) {
   return `<svg viewBox="0 0 220 118" class="w-full" style="max-width:260px;margin:0 auto;display:block" role="img" aria-label="Pengukur Equity Ratio ${nf(er)} persen">
     ${arc(0, .06, 'var(--o)')}${arc(.06, .14, 'var(--o)', .55)}${arc(.14, 1, 'var(--gt)', .85)}
     <text x="${t1x - 4}" y="${t1y}" font-size="9" text-anchor="middle" fill="var(--muted)">30</text><text x="${t2x + 2}" y="${t2y - 2}" font-size="9" text-anchor="middle" fill="var(--muted)">70</text>
-    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" fill="var(--text)"/><circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--s1)"/></svg>`;
+    <g class="needle${first ? ' sweep' : ''}" style="--a:${f * 180}deg"><line x1="${cx}" y1="${cy}" x2="${cx - (r - 16)}" y2="${cy}" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/></g><circle cx="${cx}" cy="${cy}" r="6" fill="var(--text)"/><circle cx="${cx}" cy="${cy}" r="2.5" fill="var(--s1)"/></svg>`;
 }
 
 function hero(d, v) {
   const r = d.result, lb = d.instrument.label, cur = Number(v.cur), pc = r.callMarginPrice, pl = r.autoLiquidationPrice;
   const dc = pc === null ? null : Math.abs(Number(pc) - cur), dl = pl === null ? null : Math.abs(Number(pl) - cur), mx = Math.max(dc || 0, dl || 0) || 1;
   const pcard = (title, ico, price, dist, eqv, pctv) => `<div class="card2 hl"><div class="t">${ic(ICON[ico]).replace('class="ico"', 'class="ico o"')}${title} (${lb})</div>
-    <div class="big" style="color:var(--ot)">${price === null ? 'Tidak tercapai' : nf(price)}</div>
+    <div class="big" style="color:var(--ot)">${price === null ? 'Tidak tercapai' : pf(price)}</div>
     <div class="bar mt-4"><i style="width:${dist === null ? 0 : Math.max(4, dist / mx * 100)}%"></i></div>
-    <div class="flex justify-between text-sm mt-2"><span class="muted">Jarak dari current</span><b>${dist === null ? '-' : nf(dist) + ' poin'}</b></div>
+    <div class="flex justify-between text-sm mt-2"><span class="muted">Jarak dari current</span><b>${dist === null ? '-' : pf(dist) + ' poin'}</b></div>
     <div class="flex justify-between text-sm mt-1"><span class="muted">Equity di harga ini (${pctv}% MR)</span><b>${usd(eqv)}</b></div></div>`;
   return `<div class="card2"><div class="t">${ic(ICON.gauge)}Equity Ratio</div>${gauge(Number(r.equityRatio))}
       <div class="big text-center mt-1" style="color:var(--gt)">${nf(r.equityRatio)}%</div>
       <div class="lg justify-center"><span><i style="background:var(--o)"></i>30% Auto Liquidation</span><span><i style="background:var(--o);opacity:.55"></i>70% Call Margin</span></div></div>
-    ${pcard('Call Margin Price', 'bell', pc, dc, d.chart.callMarginEquity, d.rules.callMarginPct)}
-    ${pcard('Auto Liquidation Price', 'warn', pl, dl, d.chart.autoLiquidationEquity, d.rules.autoLiquidationPct)}`;
+    ${pcard('Call Margin Price', 'bell', pc, dc, r.callMarginEquity, d.rules.callMarginPct)}
+    ${pcard('Auto Liquidation Price', 'warn', pl, dl, r.autoLiquidationEquity, d.rules.autoLiquidationPct)}`;
 }
 
 function tiles(r) {
@@ -62,36 +64,40 @@ function tiles(r) {
     <div class="v" style="${k === 'Floating P/L' ? 'color:var(--' + (neg ? 'ot' : 'gt') + ')' : ''}">${usd(v)}</div></div>`).join('');
 }
 
-function chart(c, d, v) {
-  const W = 640, H = 270, L = 58, R = 16, T = 16, B = 30, P = c.points.map(p => [+p.price, +p.equity]);
-  const call = +c.callMarginEquity, liq = +c.autoLiquidationEquity, ent = +v.entry, cur = +v.cur;
-  const xs = P.map(p => p[0]), ys = P.map(p => p[1]).concat([call, liq, 0]);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const X = a => L + (a - x0) / (x1 - x0 || 1) * (W - L - R), Y = a => T + (1 - (a - y0) / (y1 - y0 || 1)) * (H - T - B);
-  const ln = P.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join('');
-  let g = '';
-  for (let i = 0; i < 4; i++) { const a = y0 + (y1 - y0) * i / 3; g += `<line x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}" stroke="var(--line)"/><text x="${L - 8}" y="${Y(a) + 3}" font-size="10" text-anchor="end" fill="var(--muted)">$${short(a)}</text>`;
-    const px = x0 + (x1 - x0) * i / 3; g += `<text x="${X(px)}" y="${H - 8}" font-size="10" text-anchor="${i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}" fill="var(--muted)">${nf(px, 0)}</text>`; }
-  const hl = (a, col, op, t) => `<line x1="${L}" x2="${W - R}" y1="${Y(a)}" y2="${Y(a)}" stroke="${col}" stroke-opacity="${op}" stroke-width="1.6" stroke-dasharray="5 4"/><text x="${W - R - 4}" y="${Y(a) - 5}" font-size="10" text-anchor="end" fill="var(--ot)">${t}</text>`;
-  const vl = (a, e, t, col, dy) => `<line x1="${X(a)}" x2="${X(a)}" y1="${T}" y2="${H - B}" stroke="${col}" stroke-dasharray="3 3"/><circle cx="${X(a)}" cy="${Y(e)}" r="5" fill="${col}" stroke="var(--s1)" stroke-width="2"/><text x="${X(a) + (a > (x0 + x1) / 2 ? -6 : 6)}" y="${T + dy}" font-size="10.5" font-weight="600" text-anchor="${a > (x0 + x1) / 2 ? 'end' : 'start'}" fill="${col}">${t}</text>`;
-  return `<svg viewBox="0 0 ${W} ${H}" class="w-full" role="img" aria-label="Grafik Equity terhadap harga"><defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--gt)" stop-opacity=".35"/><stop offset="1" stop-color="var(--gt)" stop-opacity="0"/></linearGradient></defs>
-    ${g}<path d="${ln}L${X(x1)} ${Y(y0)}L${X(x0)} ${Y(y0)}Z" fill="url(#ar)"/><path d="${ln}" fill="none" stroke="var(--gt)" stroke-width="2.5" stroke-linejoin="round"/>
-    ${hl(call, 'var(--o)', .75, 'Call Margin')}${hl(liq, 'var(--o)', 1, 'Auto Liquidation')}
-    ${vl(ent, +d.result.newBalance, 'Entry', 'var(--muted)', 12)}${vl(cur, +d.result.equity, 'Current', 'var(--o)', 26)}</svg>`;
-}
-
 function ladder(d, v) {
   const r = d.result, cur = Number(v.cur);
   const rows = [['Entry', v.entry, 'var(--muted)'], ['Current price', v.cur, 'var(--o)', 1], ['Call Margin Price', r.callMarginPrice, 'var(--o)'], ['Auto Liquidation Price', r.autoLiquidationPrice, 'var(--ot)']].filter(x => x[1] !== null).sort((a, b) => b[1] - a[1]);
   const mx = Math.max(...rows.map(x => Math.abs(x[1] - cur))) || 1;
   return rows.map(([k, p, col, now]) => { const dl = p - cur;
-    return `<div class="lrow ${now ? 'now' : ''}"><span class="dot" style="background:${col}"></span><span class="font-medium">${k}</span><span class="text-right"><b>${nf(p)}</b> <span class="muted text-sm">${now ? 'posisi sekarang' : (dl > 0 ? '+' : '-') + nf(Math.abs(dl)) + ' poin'}</span></span>${now ? '' : `<div class="bar"><i style="width:${Math.max(3, Math.abs(dl) / mx * 100)}%;background:${col}"></i></div>`}</div>`; }).join('');
+    return `<div class="lrow ${now ? 'now' : ''}"><span class="dot" style="background:${col}"></span><span class="font-medium">${k}</span><span class="text-right"><b>${pf(p)}</b> <span class="muted text-sm">${now ? 'posisi sekarang' : (dl > 0 ? '+' : '-') + pf(Math.abs(dl)) + ' poin'}</span></span>${now ? '' : `<div class="bar"><i style="width:${Math.max(3, Math.abs(dl) / mx * 100)}%;background:${col}"></i></div>`}</div>`; }).join('');
+}
+
+const int = n => Number(n).toLocaleString('id-ID');
+function pos(d, v) {
+  const r = d.result, buy = d.side === 'buy', mv = (buy ? 1 : -1) * (Number(v.cur) - Number(v.entry)), gain = mv >= 0, ins = instruments[d.instrument.key] || {};
+  const st = (k, val, col) => `<div class="stat"><span>${k}</span><b ${col ? `style="color:var(--${col})"` : ''}>${val}</b></div>`;
+  return `<div class="pos"><div class="flex items-center gap-3 min-w-0"><span class="badge ${buy ? 'buy' : 'sell'}">${buy ? 'Buy' : 'Sell'}</span><div class="min-w-0"><div class="font-semibold truncate disp">${d.instrument.label}</div><div class="text-xs muted">Posisi terbuka</div></div></div>
+    <div class="stats">${st('Lot', int(v.lot))}${st('Price entry', pf(v.entry))}${st('Current price', pf(v.cur))}${st('Selisih poin', (mv > 0 ? '+' : mv < 0 ? '-' : '') + pf(Math.abs(mv)) + ' poin', gain ? 'gt' : 'ot')}</div>
+    ${ins.pointValue ? `<div class="tags"><span class="tag"><i></i>$${int(ins.pointValue)} per poin per lot</span><span class="tag"><i></i>Jaminan ${d.mode === 'overnight' ? 'overnight' : 'daytrade'} $${int(d.mode === 'overnight' ? ins.marginOvernight : ins.marginDaytrade)} per lot</span><span class="tag"><i></i>Call Margin ${d.rules.callMarginPct}%</span><span class="tag"><i></i>Auto Liquidation ${d.rules.autoLiquidationPct}%</span></div>` : ''}</div>`;
+}
+
+function comp(d) {
+  const r = d.result, eq = Number(r.equity), mr = Number(r.marginRequired), nb = Number(r.newBalance), fl = Number(r.floatingPL);
+  const C = 2 * Math.PI * 46, share = eq > 0 ? Math.min(mr / eq, 1) : 1, chg = nb > 0 ? fl / nb * 100 : 0;
+  return `<svg viewBox="0 0 120 120" style="max-width:190px;margin:0 auto;display:block" role="img" aria-label="Margin Required ${nf(share * 100, 1)} persen dari Equity">
+    <circle cx="60" cy="60" r="46" fill="none" stroke="var(--gt)" stroke-opacity=".85" stroke-width="14"/>
+    <circle cx="60" cy="60" r="46" fill="none" stroke="var(--o)" stroke-width="14" stroke-dasharray="${share * C} ${C}" transform="rotate(-90 60 60)"/>
+    <text x="60" y="61" text-anchor="middle" font-size="17" font-weight="700" fill="var(--text)" style="font-family:Sora,sans-serif">${nf(eq > 0 ? mr / eq * 100 : 100, 1)}%</text>
+    <text x="60" y="76" text-anchor="middle" font-size="8.5" fill="var(--muted)">MR dari Equity</text></svg>
+    <div class="legend"><div><i style="background:var(--o)"></i>Margin Required<b>${usd(r.marginRequired)}</b></div><div><i style="background:var(--gt)"></i>Effective Margin<b>${usd(r.effectiveMargin)}</b></div>
+    <div><i style="background:var(--muted)"></i>Perubahan dana<b style="color:var(--${chg < 0 ? 'ot' : 'gt'})">${chg > 0 ? '+' : ''}${nf(chg)}%</b></div></div>`;
 }
 
 function show(d, v) {
+  PD = d.instrument.priceDecimals ?? 2;
   $('#alert').classList.add('hidden'); $('#out').classList.remove('dim');
-  $('#hero').innerHTML = hero(d, v); $('#tiles').innerHTML = tiles(d.result);
-  $('#chart').innerHTML = chart(d.chart, d, v); $('#ladder').innerHTML = ladder(d, v);
+  $('#pos').innerHTML = pos(d, v); $('#hero').innerHTML = hero(d, v); $('#tiles').innerHTML = tiles(d.result);
+  $('#comp').innerHTML = comp(d); $('#ladder').innerHTML = ladder(d, v); first = false;
 }
 function fail(t) { const a = $('#alert'); a.innerHTML = t; a.classList.remove('hidden'); $('#out').classList.add('dim'); }
 
@@ -103,7 +109,7 @@ async function calculate() {
   const id = ++reqId;
   try {
     const res = await fetch('/api/calculate', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ instrument: inst, side, balance: v.eq, lot: v.lot, entryPrice: v.entry, currentPrice: v.cur, pointValue: v.pv, marginPerLot: v.jm }) });
+      body: JSON.stringify({ instrument: inst, side, mode, balance: v.eq, lot: v.lot, entryPrice: v.entry, currentPrice: v.cur }) });
     const data = await res.json();
     if (id !== reqId) return;
     if (!res.ok) return fail((data.details || [data.error]).join('<br>'));
@@ -111,10 +117,13 @@ async function calculate() {
   } catch { fail('Tidak dapat terhubung ke backend. Jalankan <b>npm start</b> di folder backend, lalu buka http://localhost:3000'); }
 }
 const schedule = () => { clearTimeout(timer); timer = setTimeout(calculate, 250); };
-function fillContract() { const c = instruments[inst] || {}; $('#pv').value = c.pointValue ?? ''; $('#jm').value = c.marginPerLot ?? ''; }
 
-$$('.seg button').forEach(b => b.onclick = () => { side = b.dataset.side; $$('.seg button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); }); calculate(); });
-$$('.chip').forEach(b => b.onclick = () => { inst = b.dataset.inst; $$('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#hdrInst').textContent = b.textContent; fillContract(); calculate(); });
+$$('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.onclick = () => {
+  if (b.dataset.side) side = b.dataset.side; else mode = b.dataset.mode;
+  g.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+  calculate();
+}));
+$$('.chip').forEach(b => b.onclick = () => { inst = b.dataset.inst; $$('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); $('#hdrInst').textContent = b.textContent; calculate(); });
 $$('input').forEach(i => i.addEventListener('input', schedule));
 $('#theme').onclick = () => { const r = document.documentElement, d = r.dataset.theme || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'); r.dataset.theme = d === 'dark' ? 'light' : 'dark'; };
-(async () => { try { instruments = (await (await fetch('/api/instruments')).json()).instruments; fillContract(); } catch {} calculate(); })();
+(async () => { try { instruments = (await (await fetch('/api/instruments')).json()).instruments; } catch {} calculate(); })();
